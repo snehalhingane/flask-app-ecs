@@ -1,0 +1,35 @@
+# stage 1: build the application
+FROM python:3.14-slim AS builder
+
+# working directory
+WORKDIR /app
+
+# copy only requirements first (build cache benefit)
+COPY . .
+
+# install the dependencies & copy it inside /app/deps
+RUN pip install --no-cache-dir -r requirements.txt --target=/app/deps
+
+
+# stage 2: create the final image
+FROM gcr.io/distroless/python3-debian12
+
+# working directory
+WORKDIR /app
+
+# copy installed packages from builder
+COPY --from=builder /app/deps /app/deps
+
+# copy application code
+COPY --from=builder /app .
+
+# set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH="/app/deps"
+
+# expose port
+EXPOSE 80
+
+# CMD to run application
+CMD ["run.py"]
+
